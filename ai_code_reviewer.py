@@ -2,6 +2,7 @@
 """
 AI Code Review System using Ollama with Llama3.2:3b
 Three focused agents: Code Reviewer, Documentation Generator, and Coordinator
+Simple workshop version - all configuration comes from agent_config.json
 """
 
 import json
@@ -15,9 +16,10 @@ import requests
 class OllamaClient:
     """Simple client for interacting with Ollama API"""
     
-    def __init__(self, base_url: str = "http://localhost:11434"):
+    def __init__(self, base_url: str, config: Dict):
         self.base_url = base_url
-        self.model = "llama3.2:3b"
+        self.model = config.get("model", "llama3.2:3b")
+        self.model_options = config.get("model_options", {})
     
     def generate(self, prompt: str, system_prompt: str = "") -> str:
         """Generate response from Ollama"""
@@ -27,10 +29,7 @@ class OllamaClient:
                 "prompt": prompt,
                 "system": system_prompt,
                 "stream": False,
-                "options": {
-                    "temperature": 0.1,
-                    "top_p": 0.9
-                }
+                "options": self.model_options
             }
             
             response = requests.post(
@@ -50,27 +49,23 @@ class OllamaClient:
 class CodeReviewAgent:
     """Agent focused on code quality, security, and best practices"""
     
-    def __init__(self, ollama_client: OllamaClient):
+    def __init__(self, ollama_client: OllamaClient, config: Dict):
         self.client = ollama_client
-        self.system_prompt = """You are a senior code reviewer focused on security, performance, and best practices.
-Review code for:
-- Security vulnerabilities
-- Performance issues
-- Code style violations
-- Logic errors
-- Potential bugs
-
-Return ONLY a JSON object with this structure:
-{
-    "security_issues": ["list of security concerns"],
-    "performance_issues": ["list of performance problems"], 
-    "style_issues": ["list of style violations"],
-    "logic_issues": ["list of logic problems"],
-    "severity": "low|medium|high"
-}"""
+        agent_config = config["agents"]["code_reviewer"]
+        self.enabled = agent_config.get("enabled", True)
+        self.system_prompt = agent_config["system_prompt"]
     
     def review_code(self, code: str, filename: str = "") -> Dict:
         """Review code and return structured feedback"""
+        if not self.enabled:
+            return {
+                "security_issues": [],
+                "performance_issues": [],
+                "style_issues": [],
+                "logic_issues": ["Code review agent is disabled"],
+                "severity": "low"
+            }
+        
         prompt = f"""Review this {'file: ' + filename if filename else 'code'}:
 
 ```
@@ -98,24 +93,21 @@ Focus on security, performance, style, and logic issues."""
 class DocumentationAgent:
     """Agent focused on generating documentation and docstrings"""
     
-    def __init__(self, ollama_client: OllamaClient):
+    def __init__(self, ollama_client: OllamaClient, config: Dict):
         self.client = ollama_client
-        self.system_prompt = """You are a technical documentation specialist.
-Generate clear, concise documentation for code including:
-- Function/class docstrings
-- Parameter descriptions
-- Return value descriptions
-- Usage examples
-
-Return ONLY a JSON object with this structure:
-{
-    "docstrings": ["list of suggested docstrings for functions/classes"],
-    "module_description": "brief description of what this module does",
-    "usage_examples": ["list of usage examples"]
-}"""
+        agent_config = config["agents"]["documentation_agent"]
+        self.enabled = agent_config.get("enabled", True)
+        self.system_prompt = agent_config["system_prompt"]
     
     def generate_docs(self, code: str, filename: str = "") -> Dict:
         """Generate documentation for the given code"""
+        if not self.enabled:
+            return {
+                "docstrings": ["Documentation agent is disabled"],
+                "module_description": "Documentation generation disabled",
+                "usage_examples": []
+            }
+        
         prompt = f"""Generate documentation for this {'file: ' + filename if filename else 'code'}:
 
 ```
@@ -139,10 +131,11 @@ Focus on clear docstrings and usage examples."""
 class CoordinatorAgent:
     """Agent that coordinates the review process and generates final reports"""
     
-    def __init__(self, ollama_client: OllamaClient):
+    def __init__(self, ollama_client: OllamaClient, config: Dict):
         self.client = ollama_client
-        self.code_reviewer = CodeReviewAgent(ollama_client)
-        self.doc_generator = DocumentationAgent(ollama_client)
+        self.config = config
+        self.code_reviewer = CodeReviewAgent(ollama_client, config)
+        self.doc_generator = DocumentationAgent(ollama_client, config)
     
     def process_code(self, code: str, filename: str = "") -> Dict:
         """Process code through both agents and coordinate results"""
@@ -242,43 +235,111 @@ def format_report(results: Dict) -> str:
     return "\n".join(report)
 
 
+def load_config(config_file: str) -> Dict:
+    """Load configuration from JSON file"""
+    config_path = Path(config_file)
+    
+    if not config_path.exists():
+        print(f"❌ Configuration file '{config_file}' not found!")
+        print(f"\n💡 To create a default configuration file, run:")
+        print(f"   python {sys.argv[0]} --create-config")
+        sys.exit(1)
+    
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        print(f"📄 Loaded configuration from {config_file}")
+        return config
+    except json.JSONDecodeError as e:
+        print(f"❌ Error parsing {config_file}: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Error loading {config_file}: {e}")
+        sys.exit(1)
+
+
+def create_default_config(config_file: str) -> None:
+    """Create a basic default configuration file"""
+    default_config = {
+        "model": "llama3.2:3b",
+        "model_options": {
+            "temperature": 0.1,
+            "top_p": 0.9
+        },
+        "agents": {
+            "code_reviewer": {
+                "name": "Code Review Agent",
+                "enabled": True,
+                "system_prompt": "You are a senior code reviewer. Review code for security, performance, style, and logic issues. Return JSON: {\"security_issues\": [], \"performance_issues\": [], \"style_issues\": [], \"logic_issues\": [], \"severity\": \"low|medium|high\"}"
+            },
+            "documentation_agent": {
+                "name": "Documentation Agent", 
+                "enabled": True,
+                "system_prompt": "You are a documentation specialist. Generate clear documentation. Return JSON: {\"docstrings\": [], \"module_description\": \"\", \"usage_examples\": []}"
+            }
+        }
+    }
+    
+    try:
+        with open(config_file, 'w', encoding='utf-8') as f:
+            json.dump(default_config, f, indent=2)
+        print(f"✅ Created default configuration: {config_file}")
+        print(f"🎯 Edit the file to customize agent prompts and behavior!")
+    except Exception as e:
+        print(f"❌ Could not create config file: {e}")
+        sys.exit(1)
+
+
 def main():
     parser = argparse.ArgumentParser(description="AI Code Review using Ollama")
-    parser.add_argument("file", help="Python file to review")
-    parser.add_argument("--output", help="Output file for report (optional)")
-    parser.add_argument("--ollama-url", default="http://localhost:11434", 
-                       help="Ollama API URL")
+    parser.add_argument("file", nargs='?', help="Python file to review")
+    parser.add_argument("--output", help="Save report to file")
+    parser.add_argument("--config", default="agent_config.json", help="Configuration file")
+    parser.add_argument("--ollama-url", default="http://localhost:11434", help="Ollama API URL")
+    parser.add_argument("--create-config", action="store_true", help="Create default config and exit")
     
     args = parser.parse_args()
     
-    # Check if file exists
-    file_path = Path(args.file)
-    if not file_path.exists():
-        print(f"Error: File {args.file} not found")
+    # Create config file and exit
+    if args.create_config:
+        create_default_config(args.config)
+        return
+    
+    # Validate arguments
+    if not args.file:
+        print("❌ No file specified. Use --help for usage information.")
         sys.exit(1)
     
-    # Read code file
+    if not Path(args.file).exists():
+        print(f"❌ File not found: {args.file}")
+        sys.exit(1)
+    
+    # Load code file
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(args.file, 'r', encoding='utf-8') as f:
             code = f.read()
     except Exception as e:
-        print(f"Error reading file: {e}")
+        print(f"❌ Error reading file: {e}")
         sys.exit(1)
     
-    # Initialize Ollama client and coordinator
+    # Load configuration
+    config = load_config(args.config)
+    
+    # Start review process
     print("🚀 Starting AI Code Review...")
     print(f"📡 Connecting to Ollama at {args.ollama_url}")
+    print(f"🤖 Using model: {config.get('model', 'llama3.2:3b')}")
     
-    ollama = OllamaClient(args.ollama_url)
-    coordinator = CoordinatorAgent(ollama)
+    # Initialize components
+    ollama = OllamaClient(args.ollama_url, config)
+    coordinator = CoordinatorAgent(ollama, config)
     
     # Process the code
-    results = coordinator.process_code(code, file_path.name)
+    results = coordinator.process_code(code, Path(args.file).name)
     
-    # Generate report
+    # Generate and output report
     report = format_report(results)
     
-    # Output results
     if args.output:
         with open(args.output, 'w', encoding='utf-8') as f:
             f.write(report)

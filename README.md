@@ -1,14 +1,18 @@
 # Oz'AI Workshop - Code Reviewer and Documentation Agents
-
-A lightweight, offline AI code review system using Ollama and Llama3.2:3b with three specialized agents for comprehensive code analysis.
+A lightweight, offline AI code review system using Ollama and Llama3.2:3b. This workshop demonstrates building practical AI tools with three specialized agents for comprehensive code analysis.
 
 ## 🎯 Oz'AI Workshop Overview - 16 Sept 2025
+Learn to build AI-powered developer tools by creating a code review system with:
 
-This workshop demonstrates how to build practical AI tools for code review and documentation using local models. The system uses three focused agents:
-
-- **Code Review Agent**: Security, performance, and style analysis
+- **Code Review Agent**: Analyzes security, performance, and style issues
 - **Documentation Agent**: Generates docstrings and usage examples  
 - **Coordinator Agent**: Orchestrates the review process and creates reports
+
+**Key Learning Goals:**
+- AI agent design patterns
+- Prompt engineering for specific tasks
+- Local AI model integration
+- Configuration-driven AI systems
 
 ## 🚀 Quick Start
 
@@ -58,14 +62,14 @@ cd C:\dev\ai-code-review
 pip install requests
 ```
 
-### Step 5: Test Installation
+### Step 5: Create Configuration and Test
 
 ```bash
-# Start Ollama (if not already running)
-ollama serve
+# Create the agent configuration file
+python ai_code_reviewer.py --create-config
 
-# In a new terminal, test the code reviewer
-python ai_code_reviewer.py ai_code_reviewer.py
+# Test with the provided bad code example
+python ai_code_reviewer.py bad_code_example.py
 ```
 
 ## 📖 Usage Examples
@@ -80,45 +84,63 @@ python ai_code_reviewer.py my_script.py
 python ai_code_reviewer.py my_script.py --output review_report.txt
 ```
 
+### Use Custom Configuration
+```bash
+python ai_code_reviewer.py my_script.py --config my_agents.json
+```
+
 ### Custom Ollama URL
 ```bash
-python ai_code_reviewer.py my_script.py --ollama-url http://localhost:11434
+python ai_code_reviewer.py my_script.py --ollama-url http://localhost:8080
 ```
 
-### Review Multiple Files
-```bash
-# Windows batch example
-for %f in (*.py) do python ai_code_reviewer.py "%f" --output "review_%f.txt"
+## 🔧 Configuration System
+
+The system is driven by `agent_config.json` which controls all agent behavior:
+
+### Sample Configuration Structure
+```json
+{
+  "model": "llama3.2:3b",
+  "model_options": {
+    "temperature": 0.1,
+    "top_p": 0.9
+  },
+  "agents": {
+    "code_reviewer": {
+      "name": "Code Review Agent",
+      "enabled": true,
+      "system_prompt": "Your custom review prompt here..."
+    },
+    "documentation_agent": {
+      "name": "Documentation Agent", 
+      "enabled": true,
+      "system_prompt": "Your custom documentation prompt here..."
+    }
+  }
+}
 ```
 
-## 🔧 Configuration
+### Customizing Agent Behavior
 
-### Ollama Settings
+1. **Edit System Prompts**: Modify how agents analyze code
+2. **Adjust Model Settings**: Change temperature for more/less creative responses
+3. **Enable/Disable Agents**: Turn off agents you don't need
+4. **Create Multiple Configs**: Different configurations for different purposes
 
-The system connects to Ollama at `http://localhost:11434` by default. To modify:
+### Workshop Exercises
 
-```bash
-# Start Ollama on different port
-ollama serve --port 8080
+**Exercise 1: Security-Focused Review**
+- Modify the code reviewer prompt to focus only on security issues
+- Test with `bad_code_example.py`
 
-# Use with code reviewer
-python ai_code_reviewer.py script.py --ollama-url http://localhost:8080
-```
+**Exercise 2: Documentation Specialist**
+- Enhance the documentation agent to include type hints
+- Test with `good_code_example.py`
 
-### Model Settings
-
-To use a different model, edit the `OllamaClient` class in `ai_code_reviewer.py`:
-
-```python
-def __init__(self, base_url: str = "http://localhost:11434"):
-    self.base_url = base_url
-    self.model = "llama3.2:1b"  # Change model here
-```
-
-Available models:
-- `llama3.2:1b` (faster, less accurate)
-- `llama3.2:3b` (recommended balance)
-- `codellama:7b` (better for code, requires more RAM)
+**Exercise 3: Custom Agent**
+- Add a new agent section to the config
+- Modify the code to use your new agent
 
 ## 🛠️ Troubleshooting
 
@@ -139,6 +161,22 @@ services.msc
 # Look for "Ollama" service and start it
 ```
 
+### Configuration File Issues
+
+**Problem**: `Configuration file 'agent_config.json' not found!`
+
+**Solutions**:
+```bash
+# Create default configuration
+python ai_code_reviewer.py --create-config
+
+# Verify the file was created
+dir agent_config.json
+
+# Check JSON syntax if you edited it
+python -m json.tool agent_config.json
+```
+
 ### Model Not Found
 
 **Problem**: `model "llama3.2:3b" not found`
@@ -151,7 +189,7 @@ ollama list
 # Pull the required model
 ollama pull llama3.2:3b
 
-# If download fails, try again with better connection
+# If download fails, try again
 ollama pull llama3.2:3b --insecure
 ```
 
@@ -164,13 +202,10 @@ ollama pull llama3.2:3b --insecure
 # Check Python version
 python --version
 
-# Install pip if missing
-python -m ensurepip --upgrade
-
 # Install requests
 pip install requests
 
-# If multiple Python versions, use specific version
+# If multiple Python versions
 python3 -m pip install requests
 ```
 
@@ -181,112 +216,149 @@ python3 -m pip install requests
 **Solutions**:
 - Close other applications to free RAM
 - Use smaller model: `ollama pull llama3.2:1b`
-- Increase virtual memory in Windows settings
+- Edit `agent_config.json` to use `"model": "llama3.2:1b"`
 - Check available disk space (models require 2-4GB)
 
-### Firewall/Antivirus Issues
+### JSON Configuration Errors
 
-**Problem**: Connection refused or blocked
-
-**Solutions**:
-- Add Ollama to Windows Firewall exceptions
-- Add exception in antivirus software
-- Temporarily disable real-time protection for testing
-- Check Windows Defender SmartScreen settings
-
-### Port Conflicts
-
-**Problem**: Port 11434 already in use
+**Problem**: `Error parsing agent_config.json`
 
 **Solutions**:
 ```bash
-# Find what's using the port
-netstat -ano | findstr 11434
+# Validate JSON syntax
+python -m json.tool agent_config.json
 
-# Kill the process (replace PID)
-taskkill /PID <process_id> /F
+# Common issues:
+# - Missing commas between sections
+# - Unescaped quotes in prompts
+# - Missing closing braces
 
-# Or use different port
-ollama serve --port 8080
+# Recreate default if corrupted
+python ai_code_reviewer.py --create-config
 ```
 
 ## 📁 Project Structure
 
 ```
 C:\dev\ai-code-review\
-├── ai_code_reviewer.py    # Main application
-├── README.md              # This file
-├── examples/              # Sample code files for testing
-│   ├── bad_code.py       # Intentionally problematic code
-│   ├── good_code.py      # Well-written example
-│   └── mixed_code.py     # Realistic code with issues
-└── reports/              # Generated review reports
+├── ai_code_reviewer.py        # Main application (simple, workshop-friendly)
+├── agent_config.json          # Agent configuration (created by --create-config)
+├── README.md                  # This file
+├── bad_code_example.py        # Intentionally problematic code for testing
+├── good_code_example.py       # Well-written example code
+└── reports/                   # Directory for saved reports (optional)
 ```
 
-## 🧪 Testing the Setup
+## 🧪 Testing Your Setup
 
-Create a test file to verify everything works:
+### Quick Verification
 
-**test_file.py**:
-```python
-def calculate_total(items):
-    total = 0
-    for item in items:
-        total = total + item
-    return total
+1. **Test Configuration Creation**:
+   ```bash
+   python ai_code_reviewer.py --create-config
+   ```
 
-# Missing docstring, inefficient loop, no error handling
-```
+2. **Test Bad Code Review**:
+   ```bash
+   python ai_code_reviewer.py bad_code_example.py
+   ```
+   Expected: Multiple security, performance, and style issues detected
 
-Run the reviewer:
-```bash
-python ai_code_reviewer.py test_file.py
-```
+3. **Test Good Code Review**:
+   ```bash
+   python ai_code_reviewer.py good_code_example.py
+   ```
+   Expected: Minimal issues, focus on documentation suggestions
 
-Expected output should include suggestions for:
-- Adding docstrings
-- Using `sum()` function
-- Adding error handling
-- Type hints
+### Workshop Validation Checklist
 
-## 🔐 Security Notes
+- [ ] Ollama service running (`ollama list` works)
+- [ ] Model downloaded (`llama3.2:3b` appears in model list)
+- [ ] Python can import requests (`python -c "import requests"`)
+- [ ] Configuration file created successfully
+- [ ] Bad code example produces detailed review
+- [ ] Good code example produces minimal issues
 
-- All processing happens locally - no code leaves your machine
-- Ollama runs as a local service on your computer
-- No API keys or external services required
-- Review the generated reports before sharing with others
+## 🎓 Workshop Activities
+
+### Activity 1: Understanding Agent Prompts
+1. Review the default `agent_config.json`
+2. Run a code review and note the results
+3. Modify the code reviewer prompt to be more strict
+4. Compare the results
+
+### Activity 2: Custom Documentation Agent
+1. Edit the documentation agent prompt
+2. Add requirements for type hints and examples
+3. Test with both code examples
+4. Observe the difference in output
+
+### Activity 3: Model Parameter Tuning
+1. Change `temperature` from `0.1` to `0.8`
+2. Run the same review multiple times
+3. Note the variation in responses
+4. Experiment with different values
+
+### Activity 4: Creating Specialized Agents
+1. Create a new agent configuration for "Performance Review"
+2. Modify the Python code to use your new agent
+3. Test with the provided examples
 
 ## 💡 Workshop Tips
 
 ### For Instructors
-- Test the full setup on the target machines beforehand
-- Have the Ollama installer ready for offline installation
-- Prepare example "bad code" files for students to test
-- Consider running Ollama from a shared network location if individual installs fail
+- **Pre-setup**: Test the full installation on target machines
+- **Have backups**: Keep working `agent_config.json` files ready
+- **Internet dependency**: Download models before workshop if internet is limited
+- **Time management**: Basic setup takes 15-20 minutes
 
 ### For Students
-- Start the setup process early - downloading models takes time
-- Keep Ollama running in the background during the workshop
-- Experiment with different code files to see various types of feedback
-- Try modifying the agent prompts to focus on specific issues
+- **Start early**: Model downloads take time
+- **Keep Ollama running**: Leave it running throughout the workshop
+- **Experiment freely**: Configuration changes are easy to revert
+- **Save configurations**: Create multiple config files for different experiments
 
-## 🤝 Contributing
+### Advanced Extensions
+- Add new agent types (security-only, performance-only)
+- Integrate with Git hooks for automated reviews
+- Create web interface using Flask/FastAPI
+- Add support for other programming languages
+- Implement batch processing for multiple files
 
-Found an issue or want to improve the system? 
+## 🔐 Security Notes
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+- **Local processing**: All code analysis happens on your machine
+- **No external calls**: Code never leaves your local environment
+- **No API keys required**: Everything runs offline after initial setup
+- **Safe to experiment**: No risk of exposing sensitive code
 
-## 📄 License
+## 🤝 Workshop Extensions
 
-This project is provided for educational purposes. Please ensure compliance with your organization's policies before using in production environments.
+Ready for more? Try these extensions:
+
+1. **Multi-file Analysis**: Modify to process entire directories
+2. **Git Integration**: Analyze only changed files in commits
+3. **Custom Output Formats**: Add HTML, PDF, or Markdown reports
+4. **Language Support**: Extend to JavaScript, Java, or other languages
+5. **CI/CD Integration**: Create GitHub Actions workflow
+
+## 📄 Learning Resources
+
+- **Ollama Documentation**: [ollama.ai/docs](https://ollama.ai/docs)
+- **Prompt Engineering Guide**: [Learn effective prompting techniques](https://www.promptingguide.ai/)
+- **Agent Design Patterns**: Study the code structure for building AI agents
+- **JSON Configuration**: Understanding config-driven applications
 
 ---
 
-**Need Help?** 
-- Check the troubleshooting section above
-- Review Ollama documentation: [ollama.ai/docs](https://ollama.ai/docs)
-- Ask during the workshop Q&A session
+**Need Help During the Workshop?**
+- Check this troubleshooting section first
+- Ask your instructor for assistance
+- Review the example files for reference patterns
+- Remember: experimentation is encouraged!
+
+**After the Workshop:**
+- Save your custom configurations
+- Try the advanced extensions
+- Apply these patterns to your own AI projects
+- Share your improvements with others!
