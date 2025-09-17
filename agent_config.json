@@ -30,7 +30,7 @@
     "include_code_snippets": false
   },
   "workshop_settings": {
-    "beginner_mode": false,
+    "beginner_mode": true,
     "detailed_explanations": true,
     "include_learning_resources": true
   }
