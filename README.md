@@ -72,6 +72,23 @@ python ai_code_reviewer.py --create-config
 python ai_code_reviewer.py bad_code_example.py
 ```
 
+### Quick Examples (Windows Batch Files)
+
+For easy testing, use the provided batch files:
+
+```bash
+# Run analysis on bad code example (demonstrates many issues)
+run_bad_example.bat
+
+# Run analysis on good code example (demonstrates best practices)
+run_good_example.bat
+```
+
+These batch files will automatically:
+- Run the code reviewer with appropriate parameters
+- Save output to text files (`review_bad.txt` and `review_good.txt`)
+- Display clear start/finish messages
+
 ## 📖 Usage Examples
 
 ### Basic Code Review
@@ -246,6 +263,8 @@ C:\dev\ai-code-review\
 ├── README.md                  # This file
 ├── bad_code_example.py        # Intentionally problematic code for testing
 ├── good_code_example.py       # Well-written example code
+├── run_bad_example.bat        # Quick test with bad code example
+├── run_good_example.bat       # Quick test with good code example
 └── reports/                   # Directory for saved reports (optional)
 ```
 

@@ -23,12 +23,6 @@
       "enabled": true
     }
   },
-  "output_settings": {
-    "include_line_numbers": true,
-    "highlight_critical_issues": true,
-    "max_issues_per_category": 10,
-    "include_code_snippets": false
-  },
   "workshop_settings": {
     "beginner_mode": true,
     "detailed_explanations": true,
