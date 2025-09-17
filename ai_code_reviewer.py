@@ -5,11 +5,12 @@ Three focused agents: Code Reviewer, Documentation Generator, and Coordinator
 Simple workshop version - all configuration comes from agent_config.json
 """
 
-import json
 import argparse
+import json
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional
+
 import requests
 
 
@@ -139,14 +140,14 @@ class CoordinatorAgent:
     
     def process_code(self, code: str, filename: str = "") -> Dict:
         """Process code through both agents and coordinate results"""
-        print(f"🔍 Reviewing code{'...' if not filename else f' in {filename}...'}")
+        print(f"Reviewing code{'...' if not filename else f' in {filename}...'}")
         
         # Get review from code review agent
-        print("  → Running security and quality review...")
+        print("  -> Running security and quality review...")
         review_results = self.code_reviewer.review_code(code, filename)
         
         # Get documentation from documentation agent
-        print("  → Generating documentation suggestions...")
+        print("  -> Generating documentation suggestions...")
         doc_results = self.doc_generator.generate_docs(code, filename)
         
         # Combine results
@@ -174,11 +175,11 @@ class CoordinatorAgent:
         summary += f"Documentation Suggestions: {doc_suggestions}\n"
         
         if severity == "high":
-            summary += "⚠️  High priority issues detected - review recommended"
+            summary += "HIGH PRIORITY: Review recommended"
         elif severity == "medium":
-            summary += "⚡ Medium priority issues found - consider addressing"
+            summary += "MEDIUM PRIORITY: Consider addressing"
         else:
-            summary += "✅ Low priority issues only - code looks good"
+            summary += "LOW PRIORITY: Code looks good"
         
         return summary
 
@@ -193,20 +194,20 @@ def format_report(results: Dict) -> str:
     report.append("=" * 60)
     
     # Summary
-    report.append("\n📊 SUMMARY")
+    report.append("\nSUMMARY")
     report.append("-" * 20)
     report.append(results["summary"])
     
     # Code Review Results
     review = results["code_review"]
-    report.append("\n🔍 CODE REVIEW")
+    report.append("\nCODE REVIEW")
     report.append("-" * 20)
     
     for category, issues in [
-        ("🔒 Security Issues", review.get("security_issues", [])),
-        ("⚡ Performance Issues", review.get("performance_issues", [])),
-        ("🎨 Style Issues", review.get("style_issues", [])),
-        ("🧠 Logic Issues", review.get("logic_issues", []))
+        ("Security Issues", review.get("security_issues", [])),
+        ("Performance Issues", review.get("performance_issues", [])),
+        ("Style Issues", review.get("style_issues", [])),
+        ("Logic Issues", review.get("logic_issues", []))
     ]:
         if issues:
             report.append(f"\n{category}:")
@@ -215,7 +216,7 @@ def format_report(results: Dict) -> str:
     
     # Documentation Suggestions
     docs = results["documentation"]
-    report.append("\n📝 DOCUMENTATION SUGGESTIONS")
+    report.append("\nDOCUMENTATION SUGGESTIONS")
     report.append("-" * 30)
     
     if docs.get("module_description"):
@@ -240,21 +241,21 @@ def load_config(config_file: str) -> Dict:
     config_path = Path(config_file)
     
     if not config_path.exists():
-        print(f"❌ Configuration file '{config_file}' not found!")
-        print(f"\n💡 To create a default configuration file, run:")
+        print(f"Configuration file '{config_file}' not found!")
+        print(f"\nTo create a default configuration file, run:")
         print(f"   python {sys.argv[0]} --create-config")
         sys.exit(1)
     
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             config = json.load(f)
-        print(f"📄 Loaded configuration from {config_file}")
+        print(f"Loaded configuration from {config_file}")
         return config
     except json.JSONDecodeError as e:
-        print(f"❌ Error parsing {config_file}: {e}")
+        print(f"Error parsing {config_file}: {e}")
         sys.exit(1)
     except Exception as e:
-        print(f"❌ Error loading {config_file}: {e}")
+        print(f"Error loading {config_file}: {e}")
         sys.exit(1)
 
 
@@ -283,10 +284,10 @@ def create_default_config(config_file: str) -> None:
     try:
         with open(config_file, 'w', encoding='utf-8') as f:
             json.dump(default_config, f, indent=2)
-        print(f"✅ Created default configuration: {config_file}")
-        print(f"🎯 Edit the file to customize agent prompts and behavior!")
+        print(f"Created default configuration: {config_file}")
+        print(f"Edit the file to customize agent prompts and behavior!")
     except Exception as e:
-        print(f"❌ Could not create config file: {e}")
+        print(f"Could not create config file: {e}")
         sys.exit(1)
 
 
@@ -307,11 +308,11 @@ def main():
     
     # Validate arguments
     if not args.file:
-        print("❌ No file specified. Use --help for usage information.")
+        print("No file specified. Use --help for usage information.")
         sys.exit(1)
     
     if not Path(args.file).exists():
-        print(f"❌ File not found: {args.file}")
+        print(f"File not found: {args.file}")
         sys.exit(1)
     
     # Load code file
@@ -319,16 +320,16 @@ def main():
         with open(args.file, 'r', encoding='utf-8') as f:
             code = f.read()
     except Exception as e:
-        print(f"❌ Error reading file: {e}")
+        print(f"Error reading file: {e}")
         sys.exit(1)
     
     # Load configuration
     config = load_config(args.config)
     
     # Start review process
-    print("🚀 Starting AI Code Review...")
-    print(f"📡 Connecting to Ollama at {args.ollama_url}")
-    print(f"🤖 Using model: {config.get('model', 'llama3.2:3b')}")
+    print("Starting AI Code Review...")
+    print(f"Connecting to Ollama at {args.ollama_url}")
+    print(f"Using model: {config.get('model', 'llama3.2:3b')}")
     
     # Initialize components
     ollama = OllamaClient(args.ollama_url, config)
@@ -343,11 +344,11 @@ def main():
     if args.output:
         with open(args.output, 'w', encoding='utf-8') as f:
             f.write(report)
-        print(f"📄 Report saved to {args.output}")
+        print(f"Report saved to {args.output}")
     else:
         print("\n" + report)
     
-    print("\n✅ Code review complete!")
+    print("\nCode review complete!")
 
 
 if __name__ == "__main__":

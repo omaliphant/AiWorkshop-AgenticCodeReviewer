@@ -1,5 +1,5 @@
 {
-  "model": "llama3.2:3b",
+  "model": "llama3.2:latest",
   "model_options": {
     "temperature": 0.1,
     "top_p": 0.9
@@ -32,6 +32,6 @@
   "workshop_settings": {
     "beginner_mode": false,
     "detailed_explanations": true,
-    "include_learning_resources": false
+    "include_learning_resources": true
   }
 }
